@@ -52,7 +52,7 @@ export const updateNote = async (req, res, next) => {
       req.params.noteId,
       req.body,
       {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       },
     );
@@ -76,7 +76,6 @@ export const updateNote = async (req, res, next) => {
 };
 
 // Видалити нотатку
-
 export const deleteNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndDelete(req.params.noteId);
