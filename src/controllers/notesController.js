@@ -76,6 +76,7 @@ export const updateNote = async (req, res, next) => {
 };
 
 // Видалити нотатку
+
 export const deleteNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndDelete(req.params.noteId);
@@ -84,7 +85,7 @@ export const deleteNote = async (req, res, next) => {
       throw createHttpError(404, 'Note not found');
     }
 
-    res.status(204).send();
+    res.status(200).json(note);
   } catch (error) {
     if (error.name === 'CastError') {
       return next(createHttpError(400, 'Invalid note ID'));
