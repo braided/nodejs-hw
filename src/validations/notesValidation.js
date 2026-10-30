@@ -1,10 +1,9 @@
-
 import { celebrate, Joi, Segments } from 'celebrate';
 import { isValidObjectId } from 'mongoose';
 import { TAGS } from '../constants/tags.js';
 
 // Валідація ID нотатки
-const noteIdSchema = Joi.string()
+const noteId = Joi.string()
   .custom((value, helpers) => {
     if (!isValidObjectId(value)) {
       return helpers.error('any.invalid');
@@ -42,9 +41,9 @@ export const getAllNotesSchema = celebrate({
 });
 
 // GET /notes/:noteId та DELETE /notes/:noteId
-export const noteIdValidation = celebrate({
+export const noteIdSchema = celebrate({
   [Segments.PARAMS]: Joi.object({
-    noteId: noteIdSchema,
+    noteId,
   }),
 });
 
@@ -56,7 +55,7 @@ export const createNoteSchema = celebrate({
 // PATCH /notes/:noteId
 export const updateNoteSchema = celebrate({
   [Segments.PARAMS]: Joi.object({
-    noteId: noteIdSchema,
+    noteId,
   }),
   [Segments.BODY]: updateNoteBodySchema,
 });

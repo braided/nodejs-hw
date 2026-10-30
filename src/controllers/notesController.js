@@ -1,8 +1,6 @@
-
 import createHttpError from 'http-errors';
-import Note from '../models/note.js';
+import { Note } from '../models/note.js';
 
-// Отримати всі нотатки з фільтрацією, пошуком і пагінацією
 export const getAllNotes = async (req, res, next) => {
   try {
     const {
@@ -14,12 +12,10 @@ export const getAllNotes = async (req, res, next) => {
 
     const filter = {};
 
-    // Фільтрація за тегом
     if (tag) {
       filter.tag = tag;
     }
 
-    // Пошук за назвою та вмістом нотатки
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -31,13 +27,10 @@ export const getAllNotes = async (req, res, next) => {
     const notesPerPage = Number(perPage);
     const skip = (currentPage - 1) * notesPerPage;
 
-    // Загальна кількість нотаток за заданими фільтрами
-    const totalNotes = await Note.countDocuments(filter);
-
-    // Отримання нотаток для поточної сторінки
-    const notes = await Note.find(filter)
-      .skip(skip)
-      .limit(notesPerPage);
+    const [totalNotes, notes] = await Promise.all([
+      Note.countDocuments(filter),
+      Note.find(filter).skip(skip).limit(notesPerPage),
+    ]);
 
     const totalPages = Math.ceil(totalNotes / notesPerPage);
 
@@ -53,7 +46,6 @@ export const getAllNotes = async (req, res, next) => {
   }
 };
 
-// Отримати нотатку за ID
 export const getNoteById = async (req, res, next) => {
   try {
     const note = await Note.findById(req.params.noteId);
@@ -72,10 +64,10 @@ export const getNoteById = async (req, res, next) => {
   }
 };
 
-// Створити нотатку
 export const createNote = async (req, res, next) => {
   try {
     const note = await Note.create(req.body);
+
     res.status(201).json(note);
   } catch (error) {
     if (error.name === 'ValidationError') {
@@ -86,7 +78,6 @@ export const createNote = async (req, res, next) => {
   }
 };
 
-// Оновити нотатку
 export const updateNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndUpdate(
@@ -116,7 +107,6 @@ export const updateNote = async (req, res, next) => {
   }
 };
 
-// Видалити нотатку
 export const deleteNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndDelete(req.params.noteId);
