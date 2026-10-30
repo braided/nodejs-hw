@@ -2,11 +2,52 @@
 import createHttpError from 'http-errors';
 import Note from '../models/note.js';
 
-// Отримати всі нотатки
+// Отримати всі нотатки з фільтрацією, пошуком і пагінацією
 export const getAllNotes = async (req, res, next) => {
   try {
-    const notes = await Note.find();
-    res.status(200).json(notes);
+    const {
+      page = 1,
+      perPage = 10,
+      tag,
+      search,
+    } = req.query;
+
+    const filter = {};
+
+    // Фільтрація за тегом
+    if (tag) {
+      filter.tag = tag;
+    }
+
+    // Пошук за назвою та вмістом нотатки
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const currentPage = Number(page);
+    const notesPerPage = Number(perPage);
+    const skip = (currentPage - 1) * notesPerPage;
+
+    // Загальна кількість нотаток за заданими фільтрами
+    const totalNotes = await Note.countDocuments(filter);
+
+    // Отримання нотаток для поточної сторінки
+    const notes = await Note.find(filter)
+      .skip(skip)
+      .limit(notesPerPage);
+
+    const totalPages = Math.ceil(totalNotes / notesPerPage);
+
+    res.status(200).json({
+      page: currentPage,
+      perPage: notesPerPage,
+      totalNotes,
+      totalPages,
+      notes,
+    });
   } catch (error) {
     next(error);
   }
