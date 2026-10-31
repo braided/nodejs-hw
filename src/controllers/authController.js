@@ -6,6 +6,18 @@ import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+};
+
+const clearSessionCookies = (res) => {
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
+  res.clearCookie('sessionId', cookieOptions);
+};
+
 // Реєстрація користувача
 export const registerUser = async (req, res, next) => {
   try {
@@ -54,7 +66,6 @@ export const loginUser = async (req, res, next) => {
       throw createHttpError(401, 'Invalid credentials');
     }
 
-    // Видаляємо попередні сесії користувача
     await Session.deleteMany({ userId: user._id });
 
     const session = await createSession(user._id);
@@ -86,6 +97,9 @@ export const refreshUserSession = async (req, res, next) => {
     }
 
     if (session.refreshTokenValidUntil <= new Date()) {
+      await Session.deleteOne({ _id: session._id });
+      clearSessionCookies(res);
+
       throw createHttpError(401, 'Session token expired');
     }
 
@@ -112,18 +126,7 @@ export const logoutUser = async (req, res, next) => {
       await Session.deleteOne({ _id: sessionId });
     }
 
-    // Налаштування мають відповідати параметрам створення cookies
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-    };
-
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
-    res.clearCookie('sessionId', cookieOptions);
+    clearSessionCookies(res);
 
     res.status(204).end();
   } catch (error) {
