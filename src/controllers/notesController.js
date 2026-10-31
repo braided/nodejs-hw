@@ -1,3 +1,4 @@
+
 import createHttpError from 'http-errors';
 import { Note } from '../models/note.js';
 
@@ -10,7 +11,9 @@ export const getAllNotes = async (req, res, next) => {
       search,
     } = req.query;
 
-    const filter = {};
+    const filter = {
+      userId: req.user._id,
+    };
 
     if (tag) {
       filter.tag = tag;
@@ -48,7 +51,10 @@ export const getAllNotes = async (req, res, next) => {
 
 export const getNoteById = async (req, res, next) => {
   try {
-    const note = await Note.findById(req.params.noteId);
+    const note = await Note.findOne({
+      _id: req.params.noteId,
+      userId: req.user._id,
+    });
 
     if (!note) {
       throw createHttpError(404, 'Note not found');
@@ -66,7 +72,10 @@ export const getNoteById = async (req, res, next) => {
 
 export const createNote = async (req, res, next) => {
   try {
-    const note = await Note.create(req.body);
+    const note = await Note.create({
+      ...req.body,
+      userId: req.user._id,
+    });
 
     res.status(201).json(note);
   } catch (error) {
@@ -80,9 +89,17 @@ export const createNote = async (req, res, next) => {
 
 export const updateNote = async (req, res, next) => {
   try {
-    const note = await Note.findByIdAndUpdate(
-      req.params.noteId,
-      req.body,
+    const updateData = { ...req.body };
+
+    // Забороняємо змінювати власника нотатки
+    delete updateData.userId;
+
+    const note = await Note.findOneAndUpdate(
+      {
+        _id: req.params.noteId,
+        userId: req.user._id,
+      },
+      updateData,
       {
         returnDocument: 'after',
         runValidators: true,
@@ -109,7 +126,10 @@ export const updateNote = async (req, res, next) => {
 
 export const deleteNote = async (req, res, next) => {
   try {
-    const note = await Note.findByIdAndDelete(req.params.noteId);
+    const note = await Note.findOneAndDelete({
+      _id: req.params.noteId,
+      userId: req.user._id,
+    });
 
     if (!note) {
       throw createHttpError(404, 'Note not found');
