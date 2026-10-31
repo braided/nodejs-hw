@@ -1,4 +1,5 @@
-import { celebrate, Joi, Segments } from 'celebrate';
+
+import { Joi } from 'celebrate';
 import { isValidObjectId } from 'mongoose';
 import { TAGS } from '../constants/tags.js';
 
@@ -36,26 +37,26 @@ const updateNoteBodySchema = Joi.object({
 }).min(1);
 
 // GET /notes
-export const getAllNotesSchema = celebrate({
-  [Segments.QUERY]: notesQuerySchema,
-});
+export const getAllNotesSchema = {
+  query: notesQuerySchema,
+};
 
 // GET /notes/:noteId та DELETE /notes/:noteId
-export const noteIdSchema = celebrate({
-  [Segments.PARAMS]: Joi.object({
+export const noteIdSchema = {
+  params: Joi.object({
     noteId,
   }),
-});
+};
 
 // POST /notes
-export const createNoteSchema = celebrate({
-  [Segments.BODY]: createNoteBodySchema,
-});
+export const createNoteSchema = {
+  body: createNoteBodySchema,
+};
 
 // PATCH /notes/:noteId
-export const updateNoteSchema = celebrate({
-  [Segments.PARAMS]: Joi.object({
+export const updateNoteSchema = {
+  params: Joi.object({
     noteId,
   }),
-  [Segments.BODY]: updateNoteBodySchema,
-});
+  body: updateNoteBodySchema,
+};
