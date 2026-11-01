@@ -1,14 +1,24 @@
-
 import { Joi } from 'celebrate';
 
-// Схема валідації реєстрації
+// Реєстрація користувача
 export const registerUserSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
 });
 
-// Схема валідації входу
+// Вхід користувача
 export const loginUserSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
+});
+
+// Запит на відновлення паролю
+export const requestResetEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+// Встановлення нового паролю
+export const resetPasswordSchema = Joi.object({
+  token: Joi.string().required(),
+  password: Joi.string().min(8).required(),
 });

@@ -1,15 +1,20 @@
-
 import bcrypt from 'bcrypt';
 import createHttpError from 'http-errors';
+import jwt from 'jsonwebtoken';
+import handlebars from 'handlebars';
+import { readFile } from 'node:fs/promises';
 
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
+import { sendEmail } from '../utils/sendMail.js';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 const cookieOptions = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'none',
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
 };
 
 const clearSessionCookies = (res) => {
@@ -57,10 +62,7 @@ export const loginUser = async (req, res, next) => {
       throw createHttpError(401, 'Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw createHttpError(401, 'Invalid credentials');
@@ -129,6 +131,95 @@ export const logoutUser = async (req, res, next) => {
     clearSessionCookies(res);
 
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Запит на відновлення паролю
+export const requestResetEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({
+        message: 'Password reset email sent successfully',
+      });
+    }
+
+    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
+      subject: user._id.toString(),
+      expiresIn: '15m',
+    });
+
+    const resetPasswordUrl = `${process.env.FRONTEND_DOMAIN.replace(/\/$/, '')}/reset-password?token=${token}`;
+
+    const templateSource = await readFile(
+      new URL('../templates/reset-password-email.html', import.meta.url),
+      'utf-8',
+    );
+
+    const template = handlebars.compile(templateSource);
+
+    const html = template({
+      username: user.username,
+      resetPasswordUrl,
+    });
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Password reset',
+        html,
+      });
+    } catch {
+      throw createHttpError(
+        500,
+        'Failed to send the email, please try again later.',
+      );
+    }
+
+    res.status(200).json({
+      message: 'Password reset email sent successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Встановлення нового паролю
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    let decodedToken;
+
+    try {
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      throw createHttpError(401, 'Invalid or expired token');
+    }
+
+    const user = await User.findOne({
+      _id: decodedToken.sub,
+      email: decodedToken.email,
+    });
+
+    if (!user) {
+      throw createHttpError(404, 'User not found');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Password reset successfully',
+    });
   } catch (error) {
     next(error);
   }

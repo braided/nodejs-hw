@@ -1,15 +1,9 @@
-
 import createHttpError from 'http-errors';
 import { Note } from '../models/note.js';
 
 export const getAllNotes = async (req, res, next) => {
   try {
-    const {
-      page = 1,
-      perPage = 10,
-      tag,
-      search,
-    } = req.query;
+    const { page = 1, perPage = 10, tag, search } = req.query;
 
     const filter = {
       userId: req.user._id,

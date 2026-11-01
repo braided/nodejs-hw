@@ -1,4 +1,3 @@
-
 import { randomBytes } from 'node:crypto';
 
 import { Session } from '../models/session.js';
@@ -23,10 +22,12 @@ export const createSession = async (userId) => {
 };
 
 export const setSessionCookies = (res, session) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const cookieOptions = {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   };
 
   res.cookie('accessToken', session.accessToken, {
