@@ -154,7 +154,14 @@ export const requestResetEmail = async (req, res, next) => {
       expiresIn: '15m',
     });
 
-    const resetPasswordUrl = `${process.env.FRONTEND_DOMAIN.replace(/\/$/, '')}/reset-password?token=${token}`;
+    const baseUrl =
+      process.env.FRONTEND_DOMAIN || process.env.RENDER_EXTERNAL_URL;
+
+    if (!baseUrl) {
+      throw createHttpError(500, 'Frontend or backend URL is not configured');
+    }
+
+    const resetPasswordUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
 
     const templateSource = await readFile(
       new URL('../templates/reset-password-email.html', import.meta.url),
