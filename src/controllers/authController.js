@@ -10,7 +10,6 @@ import { createSession, setSessionCookies } from '../services/auth.js';
 import { sendEmail } from '../utils/sendMail.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
-
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction,
@@ -29,7 +28,6 @@ export const registerUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
       throw createHttpError(400, 'Email in use');
     }
@@ -69,7 +67,6 @@ export const loginUser = async (req, res, next) => {
     }
 
     await Session.deleteMany({ userId: user._id });
-
     const session = await createSession(user._id);
 
     setSessionCookies(res, session);
@@ -110,7 +107,6 @@ export const refreshUserSession = async (req, res, next) => {
     const newSession = await createSession(session.userId);
 
     setSessionCookies(res, newSession);
-
     res.status(200).json({
       message: 'Session refreshed',
     });
@@ -169,7 +165,6 @@ export const requestResetEmail = async (req, res, next) => {
     );
 
     const template = handlebars.compile(templateSource);
-
     const html = template({
       username: user.username,
       resetPasswordUrl,
@@ -177,6 +172,7 @@ export const requestResetEmail = async (req, res, next) => {
 
     try {
       await sendEmail({
+        from: process.env.SMTP_FROM,
         to: user.email,
         subject: 'Password reset',
         html,
